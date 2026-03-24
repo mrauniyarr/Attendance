@@ -3,9 +3,19 @@ import openpyxl
 from openpyxl import Workbook, load_workbook
 from openpyxl.utils import get_column_letter
 
-EXCEL_FILE = "Attendance_Data.xlsx"
+# --- SMART STORAGE LOGIC ---
+def get_db_path():
+    path = os.getenv("FLET_APP_STORAGE_DATA")
+    if not path:
+        path = os.getcwd()
+    return os.path.join(path, "Attendance_Data.xlsx")
+
+EXCEL_FILE = get_db_path()
 
 def ensure_excel_file():
+    dir_name = os.path.dirname(EXCEL_FILE)
+    if dir_name:
+        os.makedirs(dir_name, exist_ok=True)
     if not os.path.exists(EXCEL_FILE):
         wb = Workbook()
         # Keep one sheet minimum or add before removing
