@@ -4,7 +4,6 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-# Opt into Node.js 24 now to avoid the June 2nd forced switch issues
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -12,27 +11,26 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Upgraded to v6 for Node 24 support
       - uses: actions/checkout@v6
 
-      # Upgraded to v6 for Node 24 support
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
-          cache: 'pip' # Optional: Speeds up subsequent builds
 
-      - name: Install dependencies
+      - name: Install Flet and App Dependencies
         run: |
           pip install flet
-          # If your excel_handler needs pandas or openpyxl, add them here:
-          # pip install pandas openpyxl
+          # IMPORTANT: Flet needs to know what to bundle. 
+          # If you don't have a requirements.txt, list them here:
+          # pip install pandas openpyxl 
 
       - name: Build APK
         run: |
-          flet build apk --no-deps
+          # Removed --no-deps as it is deprecated in 0.82.x
+          # Added -v for verbose output so you can see the progress
+          flet build apk -v
 
-      # Upgraded to v4 (current stable)
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
