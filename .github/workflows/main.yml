@@ -18,20 +18,25 @@ jobs:
         with:
           python-version: '3.11'
 
-      # NEW: Install Flutter manually so the CLI doesn't prompt for it
+      # This satisfies Flet's requirement for Flutter without asking [y/n]
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.x' # Matches the requirement for Flet 0.82.x
           channel: 'stable'
+          # Flet 0.82.2 usually looks for the latest stable
+          cache: true 
 
-      - name: Install Flet
-        run: pip install flet
+      - name: Install Flet and Dependencies
+        run: |
+          pip install flet
+          # If excel_handler.py uses pandas/openpyxl, uncomment below:
+          # pip install pandas openpyxl
 
       - name: Build APK
         run: |
-          # Use the -y flag to automatically accept prompts
-          flet build apk -y -v
+          # We remove -y since it's unrecognized, and --no-deps is gone.
+          # Just 'flet build apk' is enough now that Flutter is pre-installed.
+          flet build apk -v
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
