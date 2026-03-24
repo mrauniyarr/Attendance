@@ -1,9 +1,10 @@
 import flet as ft
 import datetime
 import os
+import shutil
 import excel_handler as eh
 
-def main(page: ft.Page):
+async def main(page: ft.Page):
     page.title = "Attendance App"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 0
@@ -14,6 +15,9 @@ def main(page: ft.Page):
     selected_date = datetime.date.today().strftime("%d-%m-%Y")
     selected_class = None
     roll_number_input = ft.Text("", size=30, weight=ft.FontWeight.BOLD)
+    
+    # Share service
+    share_service = ft.Share()
     
     # --- UI Helpers ---
     def show_snackbar(message, color=ft.Colors.GREEN):
@@ -57,12 +61,35 @@ def main(page: ft.Page):
         page.show_dialog(confirm_dialog)
 
     async def share_excel(e):
-        show_snackbar("Opening 'Attendance_Data.xlsx' location...", ft.Colors.BLUE)
+        if not os.path.exists(eh.EXCEL_FILE):
+            show_snackbar("No data to export!", ft.Colors.RED)
+            return
+
         try:
-            # We use the raw page.launch_url to avoid "unknown control" errors in the Flet companion app
-            await page.launch_url(f"file:///{os.path.abspath(eh.EXCEL_FILE)}")
+            if page.platform in (ft.PagePlatform.WINDOWS, ft.PagePlatform.LINUX):
+                dest = os.path.join(
+                    os.path.expanduser("~"),
+                    f"Attendance_Export_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                )
+                shutil.copy2(eh.EXCEL_FILE, dest)
+                show_snackbar("Saved to Downloads or user directory!", ft.Colors.BLUE)
+            else:  # Android / iOS
+                sp = ft.StoragePaths()
+                temp_dir = await sp.get_temporary_directory()
+
+                export_name = f"Attendance_Report_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                temp_file = os.path.join(temp_dir, export_name)
+
+                shutil.copy2(eh.EXCEL_FILE, temp_file)
+
+                result = await share_service.share_files(
+                    [ft.ShareFile.from_path(temp_file)], text="Master Attendance Report"
+                )
+                show_snackbar(f"Share sheet opened! ({result.status})", ft.Colors.GREEN)
+
         except Exception as ex:
-            show_snackbar(f"Failed to open/share: {str(ex)}", ft.Colors.RED)
+            show_snackbar(f"Share error: {str(ex)[:80]}", ft.Colors.RED)
+        page.update()
 
     def calc_percentage(e):
         if not selected_class:
@@ -176,7 +203,7 @@ def main(page: ft.Page):
         expand=True
     )
     
-    class_dropdown = ft.Dropdown(label="Select Class")
+    class_dropdown = ft.Dropdown(label="Select Class", expand=True)
     def on_class_select(e):
         nonlocal selected_class
         selected_class = e.control.value
@@ -210,8 +237,8 @@ def main(page: ft.Page):
                     content=ft.Column([
                         ft.Text("Data Management", weight="bold", size=18),
                         ft.Row([
-                            ft.Button(content="Calculate %", icon=ft.Icons.PERCENT, on_click=calc_percentage, expand=True),
-                            ft.Button(content="Delete %", icon=ft.Icons.DELETE_SWEEP, on_click=del_percentage, expand=True),
+                            ft.Button(content="Add %", icon=ft.Icons.PERCENT, on_click=calc_percentage, expand=True,bgcolor=ft.Colors.GREEN,color=ft.Colors.WHITE),
+                            ft.Button(content="Delete %", icon=ft.Icons.DELETE_SWEEP, on_click=del_percentage, expand=True,bgcolor=ft.Colors.BLUE,color=ft.Colors.WHITE),
                         ]),
                         ft.Row([
                             ft.Button(content="Share Excel", icon=ft.Icons.SHARE, on_click=share_excel, expand=True, bgcolor=ft.Colors.BLUE, color=ft.Colors.WHITE),
