@@ -18,18 +18,20 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Flet and App Dependencies
-        run: |
-          pip install flet
-          # IMPORTANT: Flet needs to know what to bundle. 
-          # If you don't have a requirements.txt, list them here:
-          # pip install pandas openpyxl 
+      # NEW: Install Flutter manually so the CLI doesn't prompt for it
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.x' # Matches the requirement for Flet 0.82.x
+          channel: 'stable'
+
+      - name: Install Flet
+        run: pip install flet
 
       - name: Build APK
         run: |
-          # Removed --no-deps as it is deprecated in 0.82.x
-          # Added -v for verbose output so you can see the progress
-          flet build apk -v
+          # Use the -y flag to automatically accept prompts
+          flet build apk -y -v
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
